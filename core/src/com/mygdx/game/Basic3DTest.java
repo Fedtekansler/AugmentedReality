@@ -16,71 +16,111 @@ import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
 import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.CameraInputController;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
+import com.badlogic.gdx.math.Vector3;
+import com.badlogic.gdx.scenes.scene2d.ui.Button;
 
 public class Basic3DTest implements ApplicationListener {
 	public PerspectiveCamera cam;
 	public Environment environment;
-    public Model model;
-    public ModelBatch modelBatch;
-    public ModelInstance instance;
-    public CameraInputController camController;
-    public SpriteBatch spriteBatch = new SpriteBatch();
-	
+	public Model model;
+	public Model xArrow;
+	public Model yArrow;
+	public Model zArrow;
+	public ModelBatch modelBatch;
+	public ModelInstance instance;
+	public ModelInstance xInstance;
+	public ModelInstance yInstance;
+	public ModelInstance zInstance;
+	public CameraInputController camController;
+	private Vector3 point;
+	private Vector3 attach;
+
 	@Override
-    public void create () {
+	public void create () {
 		modelBatch = new ModelBatch();
-		
+
 		// Lighting to improve the dimension
 		environment = new Environment();
-        environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
-        environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
-		
-        // Setting up the camera and where to look from and to.
+		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
+		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
+
+
+		// Setting up the camera and where to look from and to.
 		cam = new PerspectiveCamera(67, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        cam.position.set(10f, 10f, 10f);
-        cam.lookAt(0,0,0);
-        cam.near = 1f;
-        cam.far = 300f;
-        cam.update();    
-        
-        // Building the model
-        ModelBuilder modelBuilder = new ModelBuilder();
-        model = modelBuilder.createBox(5f, 5f, 5f, 
-            new Material(ColorAttribute.createDiffuse(Color.GREEN)),
-            Usage.Position | Usage.Normal);
-        instance = new ModelInstance(model);
-        
-        // Control the camera
-        camController = new CameraInputController(cam);
-        Gdx.input.setInputProcessor(camController);
+		cam.position.set(5f, 2f, 5f);
+		cam.lookAt(0,1,0);
+		cam.near = 1f;
+		cam.far = 300f;
+		cam.update(); 
+
+		// Building the model
+		ModelBuilder modelBuilder = new ModelBuilder();
+		
+		
+		model = modelBuilder.createBox(1f, 1f, 1f, 
+				new Material(ColorAttribute.createDiffuse(Color.MAGENTA)),
+				Usage.Position | Usage.Normal);
+		instance = new ModelInstance(model);
+		
+		instance.transform.translate(1f, 0.5f, 0.75f);
+
+		xArrow = modelBuilder.createArrow(0f, 0f, 0f, 1f, 0f, 0f, 
+				0.1f, 0.1f, 200, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.RED)),
+				Usage.Position | Usage.Normal);
+		xInstance = new ModelInstance(xArrow);
+
+		yArrow = modelBuilder.createArrow(0f, 0f, 0f, 0f, 1f, 0f, 
+				0.1f, 0.1f, 200, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.GREEN)),
+				Usage.Position | Usage.Normal);
+		yInstance = new ModelInstance(yArrow);
+
+		zArrow = modelBuilder.createArrow(0f, 0f, 0f, 0f, 0f, 1f, 
+				0.1f, 0.1f, 200, GL20.GL_TRIANGLES, new Material(ColorAttribute.createDiffuse(Color.BLUE)),
+				Usage.Position | Usage.Normal);
+		zInstance = new ModelInstance(zArrow);            
+
+
+		// Control the camera
+		//camController = new CameraInputController(cam);
+		//Gdx.input.setInputProcessor(camController);
+		
+		
+
 	}
- 
-    @Override
-    public void render () {
-        Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
-        Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
- 
-        modelBatch.begin(cam);
-        modelBatch.render(instance, environment);
-        modelBatch.end();
-        
-        camController.update();
-    }
-     
-    @Override
-    public void dispose () {
-    	model.dispose();
-    }
-     
-    @Override
-    public void resume () {
-    }
- 
-    @Override
-    public void resize (int width, int height) {
-    }
- 
-    @Override
-    public void pause () {
-    }
+
+	@Override
+	public void render () {
+		Gdx.gl.glViewport(0, 0, Gdx.graphics.getWidth(), Gdx.graphics.getHeight());
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
+
+		modelBatch.begin(cam);
+		modelBatch.render(xInstance);
+		modelBatch.render(yInstance);
+		modelBatch.render(zInstance);
+		modelBatch.render(instance, environment);
+		modelBatch.end();
+		
+		point = new Vector3(1f, 1f, 1f);
+		attach = new Vector3(0f, 1f, 0f);
+		cam.rotateAround(point, attach, 2);
+		cam.update();
+		//camController.update();
+	}
+
+	@Override
+	public void dispose () {
+		model.dispose();
+	}
+
+	@Override
+	public void resume () {
+	}
+
+	@Override
+	public void resize (int width, int height) {
+	}
+
+	@Override
+	public void pause () {
+	}
 }
