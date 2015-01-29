@@ -19,19 +19,21 @@ import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.scenes.scene2d.ui.Button;
 
-public class Basic3DTest implements ApplicationListener {
-	public PerspectiveCamera cam;
-	public Environment environment;
-	public Model model;
-	public Model xArrow;
-	public Model yArrow;
-	public Model zArrow;
-	public ModelBatch modelBatch;
-	public ModelInstance instance;
-	public ModelInstance xInstance;
-	public ModelInstance yInstance;
-	public ModelInstance zInstance;
-	public CameraInputController camController;
+public class Milestone1 implements ApplicationListener {
+	private PerspectiveCamera cam;
+	private Environment environment;
+	private Model model;
+	private Model xArrow;
+	private Model yArrow;
+	private Model zArrow;
+	private Model cylinder;
+	private ModelBatch modelBatch;
+	private ModelInstance instance;
+	private ModelInstance xInstance;
+	private ModelInstance yInstance;
+	private ModelInstance zInstance;
+	private ModelInstance cylinderInstance;
+	private CameraInputController camController;
 	private Vector3 point;
 	private Vector3 attach;
 
@@ -79,7 +81,13 @@ public class Basic3DTest implements ApplicationListener {
 				Usage.Position | Usage.Normal);
 		zInstance = new ModelInstance(zArrow);            
 
-
+		cylinder = modelBuilder.createCylinder(1f, 1f, 1f, 100, 
+				new Material(ColorAttribute.createDiffuse(Color.NAVY)), 
+				Usage.Position | Usage.Normal);
+		cylinderInstance = new ModelInstance(cylinder);
+		
+		cylinderInstance.transform.translate(3f, 0.5f, 0.75f);
+		
 		// Control the camera
 		//camController = new CameraInputController(cam);
 		//Gdx.input.setInputProcessor(camController);
@@ -98,6 +106,7 @@ public class Basic3DTest implements ApplicationListener {
 		modelBatch.render(yInstance);
 		modelBatch.render(zInstance);
 		modelBatch.render(instance, environment);
+		modelBatch.render(cylinderInstance, environment);
 		modelBatch.end();
 		
 		point = new Vector3(1f, 1f, 1f);
