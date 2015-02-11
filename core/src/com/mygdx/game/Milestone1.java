@@ -127,6 +127,9 @@ public class Milestone1 implements ApplicationListener {
 
 	@Override
 	public void resize (int width, int height) {
+		cam.viewportWidth = Gdx.graphics.getWidth ();
+		cam.viewportHeight = Gdx.graphics.getHeight ();
+		cam.update ();
 	}
 
 	@Override
