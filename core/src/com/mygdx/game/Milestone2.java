@@ -42,9 +42,7 @@ public class Milestone2 implements ApplicationListener {
 
 	//Libgdx
 	private PerspectiveCamera cam;
-	private Model model;
 	private ModelBatch modelBatch;
-	private ArrayList<ModelInstance> boxes = new ArrayList<ModelInstance>();
 	private ModelBuilder modelBuilder;
 	private Model cube;
 	private ModelInstance[][] cubes;
@@ -52,17 +50,13 @@ public class Milestone2 implements ApplicationListener {
 	//OpenCV
 	private VideoCapture webCam;
 	
-	private MatOfPoint2f eye;
 	private MatOfPoint2f corners = new MatOfPoint2f();
 	private MatOfPoint3f worldPoints = new MatOfPoint3f();
-	private MatOfPoint3f drawPoints = new MatOfPoint3f();
 	
 	private Mat camIntrinsic;
 	private Mat webcam_image = new Mat();
 	private Mat grey_image = new Mat();
 	private MatOfDouble camDist;
-	private Mat detectedEdges;
-	private Mat videoInput;
 	private Material mat;
 	
 	private Vector3 startingPosition;
@@ -70,9 +64,8 @@ public class Milestone2 implements ApplicationListener {
 	
 	private static int screenWidth = 640;
 	private static int screenHeight = 480;
-	private int count = 0;
-	
-	private double width = Math.floor(boardSize.width / 2);
+
+	private double width = Math.floor(boardSize.width/2);
 	private double height = boardSize.height - 1;
 	
 	private boolean foundCorners = false;
@@ -81,22 +74,22 @@ public class Milestone2 implements ApplicationListener {
 
 	@Override
 	public void create() {	
+		//Allocate
+		corners.alloc(54);
+		worldPoints.alloc(54);
+		
 		//Origin postion of the cubes
 		startingPosition = new Vector3(0.5f, 0.5f, 0.5f);
 		
 		//Libgdx
 		modelBatch = new ModelBatch();
 		modelBuilder = new ModelBuilder();
-		cubes = new ModelInstance[(int)Math.floor(boardSize.width / 2)][(int)boardSize.height - 1];
+		cubes = new ModelInstance[(int)Math.floor(boardSize.width/2)][(int)boardSize.height - 1];
 
 		setupCube();
 		setupCamera();
 		
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-		detectedEdges = Mat.eye(128, 128, CvType.CV_8UC1);
-		videoInput = Mat.eye(128, 128, CvType.CV_8UC1);
-
-		eye = new MatOfPoint2f();
 		
 		webCam = new VideoCapture(0);
 		webCam.set(Highgui.CV_CAP_PROP_FRAME_WIDTH, screenWidth);
@@ -139,8 +132,6 @@ public class Milestone2 implements ApplicationListener {
                 Gdx.graphics.getHeight());
 		Gdx.gl.glClearColor(1, 1, 1, 1);
         Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT | GL20.GL_DEPTH_BUFFER_BIT);
-		
-        webCam.read(eye);
         
 		UtilAR.imDrawBackground(webcam_image);
 		findChessboard();
@@ -153,10 +144,6 @@ public class Milestone2 implements ApplicationListener {
 
 		Imgproc.cvtColor(webcam_image, grey_image, Imgproc.COLOR_BGR2GRAY);
 
-		corners.alloc(54);
-		worldPoints.alloc(54);
-		drawPoints.alloc(54);
-
 		foundCorners = Calib3d.findChessboardCorners(grey_image, boardSize, corners, Calib3d.CALIB_CB_ADAPTIVE_THRESH + Calib3d.CALIB_CB_NORMALIZE_IMAGE + Calib3d.CALIB_CB_FAST_CHECK);
 		if (foundCorners) {
 			
@@ -166,15 +153,13 @@ public class Milestone2 implements ApplicationListener {
 				double row = Math.floor(j / boardSize.width);
 				double col = j % boardSize.width;
 				
-				worldPoints.put(j, 0, scale * col, 0.0, scale*row);
-				drawPoints.put(j, 0, scale*col, scale*row, 0.0);
-				
+				worldPoints.put(j, 0, scale * col, 0.0, scale * row);
 			}
 			
 			Mat rvec = new Mat();
 			Mat tvec = new Mat();
 						
-			Imgproc.cornerSubPix(grey_image, corners, new Size(11,11), new Size(-1,-1), new TermCriteria(TermCriteria.EPS, 0, 0.01));
+			Imgproc.cornerSubPix(grey_image, corners, new Size(9,6), new Size(-1,-1), new TermCriteria(TermCriteria.EPS, 0, 0.01));
 			Calib3d.drawChessboardCorners(webcam_image, new Size(9,6), corners, foundCorners);	
 			
 			Calib3d.solvePnP(worldPoints, corners, camIntrinsic, camDist, rvec, tvec);
@@ -187,34 +172,27 @@ public class Milestone2 implements ApplicationListener {
 		if (foundCorners) { 		
 			modelBatch.begin(cam);
 			
-			count++;
-			
 			for (int i = 0; i < width; i++) {
 				for (int j = 0; j < height; j++) {
 					cubes[i][j].transform.idt();
 					int xOffset = 2*i;
 					if (j % 2 == 1) xOffset+= 1;
 					
-					Vector3 uniquePosition = new Vector3(startingPosition.x +xOffset, 0, startingPosition.z + j);
+					Vector3 uniquePosition = new Vector3(startingPosition.x +xOffset, startingPosition.y, startingPosition.z + j);
 					cubes[i][j].transform.translate(uniquePosition);
 					
-					float yScale = (float)Math.sin((count + 5*j) / 30f * Math.PI) * (float)Math.cos((count + 5*i) / 30f * Math.PI) * 1.05f;
-					cubes[i][j].transform.scale(1f, yScale, 1f);
-					cubes[i][j].transform.translate(0f, 0.5f, 0f);
 					modelBatch.render(cubes[i][j]);
 					
 				}
 			}
-			modelBatch.end();
-			
+			modelBatch.end();			
 		}
 	}
 	
 	private void setupCube() {
 
         // setup material with texture
-        mat = new Material(ColorAttribute.createDiffuse(new Color(0.3f, 0.3f,
-                0.3f, 1.0f)));
+        mat = new Material(ColorAttribute.createDiffuse(Color.ORANGE));
         // blending
         mat.set(new BlendingAttribute(GL20.GL_SRC_ALPHA,
                 GL20.GL_ONE_MINUS_SRC_ALPHA, 0.9f));
@@ -225,7 +203,6 @@ public class Milestone2 implements ApplicationListener {
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 cubes[i][j] = new ModelInstance(cube);
-                cubes[i][j].materials.get(0).set(ColorAttribute.createDiffuse(new Color(i / (float)width, j / (float)height, 0.1f, 1.0f)));
             }
         }
     }
