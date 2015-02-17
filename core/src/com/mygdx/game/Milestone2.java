@@ -23,12 +23,14 @@ import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.PerspectiveCamera;
 import com.badlogic.gdx.graphics.VertexAttributes.Usage;
 import com.badlogic.gdx.graphics.g3d.Attributes;
+import com.badlogic.gdx.graphics.g3d.Environment;
 import com.badlogic.gdx.graphics.g3d.Material;
 import com.badlogic.gdx.graphics.g3d.Model;
 import com.badlogic.gdx.graphics.g3d.ModelBatch;
 import com.badlogic.gdx.graphics.g3d.ModelInstance;
 import com.badlogic.gdx.graphics.g3d.attributes.BlendingAttribute;
 import com.badlogic.gdx.graphics.g3d.attributes.ColorAttribute;
+import com.badlogic.gdx.graphics.g3d.environment.DirectionalLight;
 import com.badlogic.gdx.graphics.g3d.utils.ModelBuilder;
 import com.badlogic.gdx.math.Vector3;
 
@@ -42,6 +44,7 @@ public class Milestone2 implements ApplicationListener {
 
 	//Libgdx
 	private PerspectiveCamera cam;
+	private Environment environment;
 	private ModelBatch modelBatch;
 	private ModelBuilder modelBuilder;
 	private Model cube;
@@ -191,6 +194,11 @@ public class Milestone2 implements ApplicationListener {
 	
 	private void setupCube() {
 
+		// Lighting to improve the dimension
+		environment = new Environment();
+		environment.set(new ColorAttribute(ColorAttribute.AmbientLight, 0.4f, 0.4f, 0.4f, 1f));
+		environment.add(new DirectionalLight().set(0.8f, 0.8f, 0.8f, -1f, -0.8f, -0.2f));
+		
         // setup material with texture
         mat = new Material(ColorAttribute.createDiffuse(Color.ORANGE));
         // blending

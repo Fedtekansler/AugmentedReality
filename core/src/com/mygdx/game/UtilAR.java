@@ -6,6 +6,7 @@ import java.awt.Toolkit;
 import java.awt.event.WindowEvent;
 import java.awt.event.WindowListener;
 import java.awt.image.BufferedImage;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.util.HashMap;
@@ -15,12 +16,10 @@ import javax.swing.JFrame;
 import javax.swing.JPanel;
 
 import org.opencv.calib3d.Calib3d;
-import org.opencv.core.Core;
 import org.opencv.core.CvType;
 import org.opencv.core.Mat;
 import org.opencv.core.MatOfByte;
 import org.opencv.core.MatOfDouble;
-import org.opencv.core.Size;
 import org.opencv.highgui.Highgui;
 import org.opencv.highgui.VideoCapture;
 
@@ -32,8 +31,11 @@ import com.badlogic.gdx.graphics.Pixmap.Format;
 import com.badlogic.gdx.graphics.Texture;
 import com.badlogic.gdx.graphics.Texture.TextureFilter;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.sun.xml.internal.messaging.saaj.util.ByteInputStream;
+import com.badlogic.gdx.math.Matrix4;
 
+/**
+ * Version 1.2
+ */
 public class UtilAR {
 
 	private static HashMap<String,MatView> panels = new HashMap<String,MatView>(32);
@@ -57,10 +59,10 @@ public class UtilAR {
 	private static Mat intrinsicParams = new Mat(3,3,CvType.CV_64F);
 	private static MatOfDouble distCoeffs = new MatOfDouble();
 	private static Mat camRotation = new Mat(3,3,CvType.CV_32F);
-	private static Mat viewMatrix = new Mat(4,4,CvType.CV_64F);
+	private static Mat floatMatrix = new Mat(4,4,CvType.CV_32F);
 	private static double[] tvecArray = new double[3];
 	private static double[] rotArray = new double[9];
-	private static double[] viewMatArr = new double[16];
+	private static float[] floatMatArr = new float[16];
 	private static double[] homLine = {0,0,0,1};
 
 	/**
@@ -79,11 +81,28 @@ public class UtilAR {
 		return distCoeffs;
 	}
 
-	private static void setCameraByViewTransform(double[] viewMatArr,Camera target) {
-		target.direction.set((float)viewMatArr[2],(float)viewMatArr[6],(float)viewMatArr[10]);
-		target.up.set((float)-viewMatArr[1],(float)-viewMatArr[5],(float)-viewMatArr[9]);
-		target.position.set((float)viewMatArr[3],(float)viewMatArr[7],(float)viewMatArr[11]);
+	private static void setCameraByViewTransform(float[] viewMatArr,Camera target) {
+		target.direction.set(viewMatArr[2],viewMatArr[6],viewMatArr[10]);
+		target.up.set(-viewMatArr[1],-viewMatArr[5],-viewMatArr[9]);
+		target.position.set(viewMatArr[3],viewMatArr[7],viewMatArr[11]);
 		target.update(true);
+	}
+
+	private static void composeMatrix(Mat rvec,Mat tvec,Mat target) {
+		Calib3d.Rodrigues(rvec,camRotation);
+
+		tvec.get(0,0, tvecArray);
+		camRotation.get(0,0, rotArray);
+
+		for(int row=0; row<3; ++row)
+		{
+		   for(int col=0; col<3; ++col)
+		   {
+			   target.put(row,col, rotArray[row*3+col]);
+		   }
+		   target.put(row,3, tvecArray[row]);
+		}
+		target.put(3,0, homLine);
 	}
 
 	/**
@@ -93,26 +112,59 @@ public class UtilAR {
 	 * @param target the target GDX camera to set the position and orientation.
 	 */
 	public static void setCameraByRT(Mat rvec,Mat tvec,Camera target) {
-		Calib3d.Rodrigues(rvec,camRotation);
+		composeMatrix(rvec,tvec,floatMatrix);
+		floatMatrix.inv().get(0,0, floatMatArr);
 
-		if(target.near>0.01f)
-			target.near = 0.01f;
+		setCameraByViewTransform(floatMatArr,target);
+	}
 
-		tvec.get(0,0, tvecArray);
-		camRotation.get(0,0, rotArray);
+	/**
+	 * Converts an OpenCV 4x4 float matrix to a libGDX matrix.
+	 * @param src the OpenCV matrix to convert. The matrix must be of type F32 with one channel with 4 rows and 4 columns.
+	 * @param tar the target libGDX matrix.
+	 */
+	public static void cvMatToGDXMat(Mat src,Matrix4 tar) {
+		src.get(0,0, floatMatArr);
+		tar.idt();
+		float[] vals = tar.val;
+		//right / X
+		vals[Matrix4.M00] = floatMatArr[0];
+		vals[Matrix4.M10] = -floatMatArr[4];
+		vals[Matrix4.M20] = -floatMatArr[8];
+		//up / Y
+		vals[Matrix4.M01] = floatMatArr[1];
+		vals[Matrix4.M11] = -floatMatArr[5];
+		vals[Matrix4.M21] = -floatMatArr[9];
+		//forward / Z
+		vals[Matrix4.M02] = floatMatArr[2];
+		vals[Matrix4.M12] = -floatMatArr[6];
+		vals[Matrix4.M22] = -floatMatArr[10];
+		//translation
+		vals[Matrix4.M03] = floatMatArr[3];
+		vals[Matrix4.M13] = -floatMatArr[7];
+		vals[Matrix4.M23] = -floatMatArr[11];
+	}
 
-		for(int row=0; row<3; ++row)
-		{
-		   for(int col=0; col<3; ++col)
-		   {
-			   viewMatrix.put(row,col, rotArray[row*3+col]);
-		   }
-		   viewMatrix.put(row,3, tvecArray[row]);
-		}
-		viewMatrix.put(3,0, homLine);
-		viewMatrix.inv().get(0,0, viewMatArr);
+	/**
+	 * Sets the given libGDX matrix according to the given OpenCV rotation and translation.
+	 * @param rvec the rotation vector.
+	 * @param tvec the translation vector.
+	 * @param target the target matrix to set the result transformation.
+	 */
+	public static void setTransformByRT(Mat rvec,Mat tvec,Matrix4 target) {
+		composeMatrix(rvec,tvec,floatMatrix);
+		cvMatToGDXMat(floatMatrix,target);
+	}
 
-		setCameraByViewTransform(viewMatArr,target);
+	/**
+	 * Resets the given libGDX camera. The camera position is set to zero. The camera is set to look along the negative Z-axis.
+	 * @param cam the camera to reset.
+	 */
+	public static void setNeutralCamera(Camera cam) {
+		cam.up.set(0,1,0);
+		cam.position.set(0,0,0);
+		cam.lookAt(0,0,-1);
+		cam.update();
 	}
 
 	/**
@@ -372,7 +424,6 @@ public class UtilAR {
 		if(tex==null) {
 			tex = createMatTexture(mat);
 			bgTextures.put(key,tex);
-			System.out.println(tex);
 		}
 		imToTexture(mat,tex);
 		texDrawBackground(tex);
@@ -462,7 +513,7 @@ public class UtilAR {
 				byte[] bytes = byteMat.toArray();
 
 				try {
-					image = ImageIO.read(new ByteInputStream(bytes,bytes.length));
+					image = ImageIO.read(new ByteArrayInputStream(bytes));
 				} catch (IOException e1) {
 					e1.printStackTrace();
 				}
