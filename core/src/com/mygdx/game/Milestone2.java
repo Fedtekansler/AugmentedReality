@@ -47,8 +47,8 @@ public class Milestone2 implements ApplicationListener {
 	private Environment environment;
 	private ModelBatch modelBatch;
 	private ModelBuilder modelBuilder;
-	private Model cube;
-	private ModelInstance[][] cubes;
+	private Model box;
+	private ModelInstance[][] boxes;
 	
 	//OpenCV
 	private VideoCapture webCam;
@@ -87,7 +87,7 @@ public class Milestone2 implements ApplicationListener {
 		//Libgdx
 		modelBatch = new ModelBatch();
 		modelBuilder = new ModelBuilder();
-		cubes = new ModelInstance[(int)Math.floor(boardSize.width/2)][(int)boardSize.height - 1];
+		boxes = new ModelInstance[(int)Math.floor(boardSize.width/2)][(int)boardSize.height - 1];
 
 		setupCube();
 		setupCamera();
@@ -177,14 +177,14 @@ public class Milestone2 implements ApplicationListener {
 			
 			for (int i = 0; i < width; i++) {
 				for (int j = 0; j < height; j++) {
-					cubes[i][j].transform.idt();
+					boxes[i][j].transform.idt();
 					int xOffset = 2*i;
 					if (j % 2 == 1) xOffset+= 1;
 					
 					Vector3 uniquePosition = new Vector3(startingPosition.x +xOffset, startingPosition.y, startingPosition.z + j);
-					cubes[i][j].transform.translate(uniquePosition);
+					boxes[i][j].transform.translate(uniquePosition);
 					
-					modelBatch.render(cubes[i][j]);
+					modelBatch.render(boxes[i][j]);
 					
 				}
 			}
@@ -205,12 +205,12 @@ public class Milestone2 implements ApplicationListener {
         mat.set(new BlendingAttribute(GL20.GL_SRC_ALPHA,
                 GL20.GL_ONE_MINUS_SRC_ALPHA, 0.9f));
 
-        cube = modelBuilder.createBox(1f, 1f, 1f, mat, Usage.Position
+        box = modelBuilder.createBox(1f, 1f, 1f, mat, Usage.Position
                 | Usage.Normal | Usage.TextureCoordinates);
 
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                cubes[i][j] = new ModelInstance(cube);
+                boxes[i][j] = new ModelInstance(box);
             }
         }
     }
