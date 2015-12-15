@@ -13,6 +13,6 @@ public class DesktopLauncher {
 	public static void main (String[] arg) {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 		LwjglApplicationConfiguration config = new LwjglApplicationConfiguration();
-		new LwjglApplication(new Milestone2(), config);
+		new LwjglApplication(new Milestone3(), config);
 	}
 }
